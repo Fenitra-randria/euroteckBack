@@ -1,0 +1,1 @@
+ALTER TABLE `produit` ADD `quantite_partiel` INT NULL AFTER `description`, ADD `quantite_complet` INT NULL AFTER `quantite_partiel`; 

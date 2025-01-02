@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorate="layout">
+	<head>
+	   <meta charset="utf-8">
+	   <title>upload</title>
+	</head> 
+	<div layout:fragment="content">
+	
+			
+			
+	
+		   <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+		      <div class="feature col">
+		        <h2>Première étape</h2>
+		        <p style="width: 300px;">Cliquez sur "parcourir" pour choisir le fichier excel à uploader</p>
+		        
+		      </div>
+		      <div class="feature col">
+		        <h2>Deuxième étape</h2>
+		        <p>Cliquez sur le boutton  "envoyer" </p>
+		        
+		      </div>
+		      <div class="feature col">
+		        <h2>Troisème étape</h2>
+		        <p>Attendez jusqu'à ce que la page redirige automatiquement vers la page liste produit ( ca peut prendre quelques secondes )</p>
+		        
+		      </div>
+		      
+		      
+		    </div>
+		    
+		    
+		    <div class="alert alert-danger" role="alert" th:if="${erreur != null}">
+			  Erreur durant l'import : [[ ${erreur} ]]
+			</div>
+		    
+		<form method="post" action="/produit/upload-excel" class="row g-3" enctype="multipart/form-data">
+    		<div class="col-md-4">
+				<label class="form-label">Fichier excel .xls </label>  
+				<input class="form-control"  type="file" name="fichier"  required>
+			</div>
+			<div class="col-12">
+				<button class="btn btn-primary"  type="submit">envoyer</button>
+			</div>
+		</form>
+		
+	</div>
+
+</html>

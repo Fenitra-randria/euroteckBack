@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorate="layout">
+	<head>
+	   <meta charset="utf-8">
+	   <title>Liste boutique</title>
+	</head> 
+	
+	<div layout:fragment="content">
+		<h1>Liste des boutiques</h1>
+	
+		<table class="table datagrid" id="liste">
+				<thead class="thead-dark">
+					<tr>
+						<th scope="col">Nom</th>
+						<th scope="col">Email client</th>
+						<th scope="col">Adresse</th>
+						<th scope="col">Code postal</th>
+						<th scope="col">Ville</th>
+						<th scope="col">Code pays</th>
+						<th scope="col">Téléphone fixe</th>
+						<th scope="col">Fax</th>
+						<th scope="col">Solde actuel</th>
+					</tr>
+				</thead>
+				<tbody>
+						<tr th:each="b : ${boutiques} ">
+							<td> [[${b.nom}]] </td>
+							<td> [[${b.utilisateur.email}]] </td>
+							<td> [[${b.adresse}]] </td>
+							<td> [[${b.codePostal}]] </td>
+							<td> [[${b.ville}]] </td>
+							<td> [[${b.codePays}]] </td>
+							<td> [[${b.telFixe}]] </td>
+							<td> [[${b.fax}]] </td>
+							<td> [[${b.soldeActuel}]] </td>
+						</tr>									
+				</tbody>
+			</table>
+				
+	</div>
+	<!-- fin content -->
+	<div layout:fragment="js">
+	     		<script>
+				  $(document).ready(function() {
+						$('#liste').DataTable();
+					} );	
+				</script>
+	</div>   
+</html>		 

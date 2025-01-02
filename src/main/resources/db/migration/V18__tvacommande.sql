@@ -1,0 +1,1 @@
+ALTER TABLE `commande` ADD `tva` double NULL ; 

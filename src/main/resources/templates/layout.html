@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq .net.nz/thymeleaf/layout">
+    <head>
+    	<meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">    
+        <style>
+            .bd-placeholder-img {
+                font-size: 1.125rem;
+                text-anchor: middle;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                user-select: none;
+            }
+            @media (min-width: 768px) {
+                .bd-placeholder-img-lg {
+                font-size: 3.5rem;
+                }
+            }
+            body {
+                min-height: 75rem;
+                padding-top: 4.5rem;
+                }
+            
+            
+        </style>
+        <link rel="stylesheet" href="/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="/css/icon/bootstrap-icons.css'" />
+        <link rel="stylesheet" href="/css/bootstrap-datetimepicker.min.css" />
+    </head>
+    <body>
+            <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Eurotec</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    
+                    <li class="nav-item">
+			            <a class="nav-link active" aria-current="page" th:href="@{ /upload-excel }">Envoyer excel</a>
+			        </li>
+			        
+			        <li class="nav-item">
+			            <a class="nav-link active" aria-current="page" th:href="@{ /produit/liste-produit }" >Liste produit</a>
+			        </li>
+			        
+<!--                     <li class="nav-item dropdown"> -->
+<!--                     	<a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> -->
+<!--                         	Upload catégorie/produit -->
+<!--                     	</a> -->
+<!-- 	                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown"> -->
+<!-- 	                        <li><a class="dropdown-item" th:href="@{ /upload-excel }">Upload</a></li> -->
+<!-- 	                        <li><a class="dropdown-item" th:href="@{ /produit/liste-categorie }">Liste catégorie</a></li> -->
+<!-- 	                        <li><a class="dropdown-item" th:href="@{ /produit/liste }">Liste produit</a></li> -->
+<!-- 	                    </ul> -->
+<!--                     </li> -->
+                    
+                </ul>
+                </div>
+            </div>
+            </nav>
+            <main class="container">
+    			<div layout:fragment="content">
+	    		</div>
+    		</main>
+        <script src="/js/bootstrap.bundle.min.js"></script>
+        <script src="/js/jquery-3.6.0.min.js"></script>
+        <script src="/js/bootstrap-datetimepicker.min.js"></script>
+        <script src="/js/jquery.dataTables.min.js"></script>
+        <script src="/js/dataTables.bootstrap5.min.js"></script>
+        <div layout:fragment="js">
+	    </div>
+    </body>
+</html>

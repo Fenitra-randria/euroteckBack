@@ -1,0 +1,1 @@
+ALTER TABLE `produit` ADD `retour_en_stock` int(1) DEFAULT 0; 

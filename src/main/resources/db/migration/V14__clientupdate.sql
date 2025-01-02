@@ -1,0 +1,1 @@
+ALTER TABLE `client` ADD `entreprise` VARCHAR(100) NULL;
