@@ -25,6 +25,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
+import com.eurotec.backend.constante.CstRole;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -62,7 +63,6 @@ public class SecurityConfig {
 			.authorizeHttpRequests(authorize -> {
 					authorize.requestMatchers ( "/api/login" ).permitAll();
 					authorize.requestMatchers ( HttpMethod.POST , "/api/utilisateurs" ).permitAll();
-					
 					authorize.anyRequest().authenticated();
 				}
 			)
@@ -84,11 +84,23 @@ public class SecurityConfig {
 					authorize.requestMatchers("/pdf/**").permitAll();
 					authorize.requestMatchers("/css/**").permitAll();
 					authorize.requestMatchers("/js/**").permitAll();
-					authorize.anyRequest().authenticated();
+					authorize.anyRequest()
+					.hasAuthority(CstRole.ADMIN);
 				})
 			.formLogin(Customizer.withDefaults())
 			.userDetailsService(utilisateurDetailService)
-			.csrf((csrf) -> csrf.disable());
+			.csrf((csrf) -> csrf.disable())
+			.logout(logout -> logout
+				.logoutUrl("/logout")                 // Logout URL
+				.logoutSuccessUrl("/login")    // Redirect after logout
+				.invalidateHttpSession(true)         // Invalidate session
+				.clearAuthentication(true)           // Clear authentication
+				.deleteCookies("JSESSIONID"))      // Delete cookies
+			.exceptionHandling(exception -> exception
+				.accessDeniedHandler((request, response, accessDeniedException) -> {
+					response.sendRedirect("/logout");
+				}));
+			
 		return http.build();
 	}
 	

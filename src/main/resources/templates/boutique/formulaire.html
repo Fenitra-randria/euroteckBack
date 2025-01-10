@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="layout"></html>
+<head>
+    <meta charset="utf-8">
+    <title>Créer ou Mettre à Jour Boutique</title>
+</head> 
+
+<div class="container mt-5">
+    <h2 th:if="${boutique.id == null}">Créer une nouvelle boutique</h2>
+    <h2 th:if="${boutique.id != null}">Mettre à jour la boutique existante </h2>
+    <p th:if="${errorMessage}" class="alert alert-danger">
+        [[${errorMessage}]]
+    </p>
+    <form th:action="@{/boutique/save}" th:object="${boutique}" method="post">
+        <input type="hidden" th:if="${boutique.id != null}" th:field="*{id}" />
+        
+        <!-- Section for Boutique Data -->
+        <div class="section">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3></h3>
+                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#userInfoModal">
+                    Voir les informations de l'utilisateur
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label for="nom">Nom de la Boutique</label>
+                <input type="text" class="form-control" id="nom" th:field="*{nom}" placeholder="Entrez le nom de la boutique">
+            </div>
+            <div class="form-group">
+                <label for="typeCommerce">Type de Commerce</label>
+                <input type="text" class="form-control" id="typeCommerce" th:field="*{typeCommerce}" placeholder="Entrez le type de commerce">
+            </div>
+            <div class="form-group">
+                <label for="boutiqueNumero">Numéro de Téléphone de la Boutique</label>
+                <input type="text" class="form-control" id="boutiqueNumero" th:field="*{telFixe}" placeholder="Entrez le numéro de téléphone de la boutique">
+            </div>
+            <div class="form-group">
+                <label for="adresse">Adresse</label>
+                <input type="text" class="form-control" id="adresse" th:field="*{adresse}" placeholder="Entrez l'adresse">
+            </div>
+            <div class="form-group">
+                <label for="ville">Ville</label>
+                <input type="text" class="form-control" id="ville" th:field="*{ville}" placeholder="Entrez la ville">
+            </div>
+            <div class="form-group">
+                <label for="codePostal">Code Postal</label>
+                <input type="text" class="form-control" id="codePostal" th:field="*{codePostal}" placeholder="Entrez le code postal">
+            </div>
+            <div class="form-group">
+                <label for="codePays">Code Pays</label>
+                <input type="text" class="form-control" id="codePays" th:field="*{codePays}" placeholder="Entrez le code pays">
+            </div>
+            <div class="form-group">
+                <label for="fax">Fax</label>
+                <input type="text" class="form-control" id="fax" th:field="*{fax}" placeholder="Entrez le numéro de fax">
+            </div>
+            <div class="form-group">
+                <label for="actif">Active</label>
+                <input type="checkbox" class="form-check-input" id="actif" th:field="*{actif}">
+            </div>
+        </div>
+        <!-- The Modal -->
+        <div class="modal fade" id="userInfoModal" tabindex="-1" role="dialog" aria-labelledby="userInfoModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="userInfoModalLabel">Informations sur l'Utilisateur</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input disabled type="email" class="form-control" id="email" th:field="*{utilisateur.email}" placeholder="Entrez l'email">
+                        </div>
+                        <div class="form-group">
+                            <label for="nomUtilisateur">Nom</label>
+                            <input disabled type="text" class="form-control" id="nomUtilisateur" th:field="*{utilisateur.nom}" placeholder="Entrez le nom">
+                        </div>
+                        <div class="form-group">
+                            <label for="prenom">Prénom</label>
+                            <input disabled type="text" class="form-control" id="prenom" th:field="*{utilisateur.prenom}" placeholder="Entrez le prénom">
+                        </div>
+                        <div class="form-group">
+                            <label for="siret">SIRET</label>
+                            <input disabled type="text" class="form-control" id="siret" th:field="*{utilisateur.siret}" placeholder="Entrez le SIRET">
+                        </div>
+                        <div class="form-group">
+                            <label for="utilisateurNumero">Numéro de Téléphone</label>
+                            <input disabled type="text" class="form-control" id="utilisateurNumero" th:field="*{utilisateur.numero}" placeholder="Entrez le numéro de téléphone">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">Soumettre</button>
+    </form>
+</div>
+</html>

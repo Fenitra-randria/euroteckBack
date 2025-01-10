@@ -37,7 +37,18 @@ public class Utilisateur {
 	String roles;
 	
 	String siret;
+
+	@Column(nullable = false)
+	Boolean actif = false;
 	
+	public Boolean getActif() {
+		return actif;
+	}
+
+	public void setActif(Boolean actif) {
+		this.actif = actif;
+	}
+
 	public String getSiret() {
 		return siret;
 	}

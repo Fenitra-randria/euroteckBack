@@ -24,4 +24,12 @@ public interface ClientRepository extends JpaRepository<Client, Long>
 	
 	Optional<Client> findByUtilisateurId(Long id);
 	
+	List<Client> findByBoutiqueId(Long id);
+
+	@Query("SELECT c FROM Client c JOIN FETCH c.utilisateur u WHERE c.boutique.id = :id")
+	List<Client> findByBoutiqueIdWithUtilisateur(@Param("id") Long id);
+
+	Optional<Client> findByEmailOrUtilisateurId(String email, Long id);
+
+	Optional<Client> findByEmailOrUtilisateurIdAndBoutiqueId(String email, Long id, Long id2);
 }

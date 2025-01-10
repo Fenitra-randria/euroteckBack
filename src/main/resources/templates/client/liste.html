@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	  layout:decorate="layout">
+	<head>
+	   <meta charset="utf-8">
+	   <title>Liste des clients</title>
+	</head> 
+
+    <div layout:fragment="content">
+		<h1>Liste des clients de NOM_BOUTIQUE</h1>
+		<table class="table datagrid" id="liste">
+				<thead class="thead-dark">
+					<tr>
+						<th scope="col">Nom</th>
+						<th scope="col">Prenom</th>
+						<th scope="col">Email</th>
+						<th scope="col">SIRET</th>
+                        <th scope="col">Numero</th>
+                        <th scope="col">ETAT</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each="c : ${clients}">
+						<td> [[${c.nom}]] </td>
+						<td> [[${c.prenom}]] </td>
+						<td> [[${c.email}]] </td>
+						<td> [[${c.siret}]] </td>
+                        <td> [[${c.numero}]] </td>
+                        <td th:text="${ c.utilisateur == null ? 'COMPTE NON LIÉ' : (c.utilisateur.actif ? 'ACTIF' : 'DÉSACTIVÉ')}"></td>
+					</tr>									
+			</tbody>
+			</table>
+				
+				
+	</div>
+	<!-- fin content -->
+	<div layout:fragment="js">
+		<script>
+			$(document).ready(function() {
+				$('#liste').DataTable();
+			} );	
+		</script>
+	</div>
+</html>

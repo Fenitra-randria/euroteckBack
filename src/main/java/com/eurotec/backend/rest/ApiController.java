@@ -19,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.util.ResourceUtils;
@@ -35,6 +36,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import com.eurotec.backend.constante.CstRole;
+import com.eurotec.backend.dto.BoutiqueCommandeRequestDto;
 import com.eurotec.backend.dto.CommandeInsertDto;
 import com.eurotec.backend.dto.CommandeListeDto;
 import com.eurotec.backend.dto.FavoriDtoInsert;
@@ -63,6 +66,7 @@ import com.eurotec.backend.repository.ProduitRepository;
 import com.eurotec.backend.repository.UtilisateurRepository;
 import com.eurotec.backend.service.NotificationService;
 import com.eurotec.backend.service.TokenService;
+import com.eurotec.backend.service.UserService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -97,28 +101,31 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 
 @RestController
-@RequestMapping(path = "/api" )
+@RequestMapping(path = "/api")
 @SecurityRequirement(name = "bearerAuth")
 public class ApiController {
-	
+
+	@Autowired
+	PasswordEncoder passwordEncoder;
+
 	@Autowired
 	NotificationService notificationService;
 
 	@Autowired
 	TokenService tokenService;
-	
+
 	@Autowired
 	AuthenticationManager authenticationManager;
-	
+
 	@Autowired
 	UtilisateurRepository utilisateurRepository;
-	
+
 	@Autowired
 	BoutiqueRepository boutiqueRepository;
-	
+
 	@Autowired
 	ProduitRepository produitRepository;
-	
+
 	@Autowired
 	CommandeRepository commandeRepository;
 
@@ -127,15 +134,18 @@ public class ApiController {
 
 	@Autowired
 	MesBoutiquesRepository mesBoutiquesRepository;
-	
+
 	@Autowired
 	PanierRepository panierRepository;
-	
+
 	@Autowired
 	ClientRepository clientRepository;
-	
+
 	@Autowired
 	FavoriRepository favoriRepository;
+
+	@Autowired
+	UserService userService;
 
 	@Value("${images.path}")
 	String PATH_IMAGE;
@@ -145,319 +155,340 @@ public class ApiController {
 
 	@Value("${jasper.path}")
 	String PATH_JASPER;
-	
-	@PostMapping( path = "/login")
+
+	@PostMapping(path = "/login")
 	@Operation(summary = "connexion", responses = {
-		      @ApiResponse(responseCode = "200" ,description = "Success"),
-		      @ApiResponse(responseCode = "401", description = "Non authorisé")
+			@ApiResponse(responseCode = "200", description = "Success"),
+			@ApiResponse(responseCode = "401", description = "Non authorisé")
 	})
-	public ResponseEntity< Map<String, Object> > login(@RequestBody Login jsonLogin)
-	{
+	public ResponseEntity<Map<String, Object>> login(@RequestBody Login jsonLogin) {
 		Map<String, Object> result = new HashMap<String, Object>();
 		Authentication authentication;
-			
-			UsernamePasswordAuthenticationToken authReq = new UsernamePasswordAuthenticationToken(jsonLogin.getLogin(), jsonLogin.getPassword());
-			try {
-				authentication = authenticationManager.authenticate(authReq);
-			}
-			catch (Exception e) {
-				throw new ResponseStatusException( HttpStatusCode.valueOf(401) );
-			}
-			
-			Utilisateur u = utilisateurRepository.findByEmail( authentication.getName() ).get();
-			if( !u.getRoles().equals( jsonLogin.getRole() ) )
-			{
-				throw new ResponseStatusException( HttpStatusCode.valueOf(401) );
-			}
-			
-			String token = tokenService.genererToken(authentication);
-			result.put("token", token);
-			
-			// boutique nombre
-			String nombre = Integer.valueOf(boutiqueRepository.countByUtilisateur(u)).toString();
-			result.put("nombre", nombre );
-			
-			// iduser
-			result.put("iduser", u.getId().toString() );
-			result.put("nomUser", u.getNom()+" "+u.getPrenom() );
-			result.put("emailUser", u.getEmail() );
-			result.put("numeroUser", u.getNumero() );
-			
-			// boutiques
-			List<Boutique> boutiques = boutiqueRepository.findByUtilisateur(u);
-			result.put("boutiques", boutiques );			
-			
-	        return new ResponseEntity( result , HttpStatusCode.valueOf(200) );
+
+		UsernamePasswordAuthenticationToken authReq = new UsernamePasswordAuthenticationToken(jsonLogin.getLogin(),
+				jsonLogin.getPassword());
+		try {
+			authentication = authenticationManager.authenticate(authReq);
+		} catch (Exception e) {
+			throw new ResponseStatusException(HttpStatusCode.valueOf(401));
+		}
+
+		Utilisateur u = utilisateurRepository.findByEmail(authentication.getName()).get();
+		if (!u.getRoles().equals(jsonLogin.getRole())) {
+			throw new ResponseStatusException(HttpStatusCode.valueOf(401));
+		}
+
+		String token = tokenService.genererToken(authentication);
+		result.put("token", token);
+
+		// boutique nombre
+		String nombre = Integer.valueOf(boutiqueRepository.countByUtilisateur(u)).toString();
+		result.put("nombre", nombre);
+
+		// iduser
+		result.put("iduser", u.getId().toString());
+		result.put("nomUser", u.getNom() + " " + u.getPrenom());
+		result.put("emailUser", u.getEmail());
+		result.put("numeroUser", u.getNumero());
+
+		// boutiques
+		List<Boutique> boutiques = boutiqueRepository.findByUtilisateur(u);
+		result.put("boutiques", boutiques);
+
+		// userService.insertClientIfNull(u,null);
+
+		return new ResponseEntity(result, HttpStatusCode.valueOf(200));
 	}
-	
-	
-		
-	@PostMapping(path = "/image/{idBoutique}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE  )
-	public ResponseEntity<String> insertImage(@PathVariable Long idBoutique,@RequestParam MultipartFile photo) 
-	{	
+
+	@GetMapping(path = "/user-actif")
+	public ResponseEntity<List<Utilisateur>> userActif() {
+		List<Utilisateur> u = utilisateurRepository.findAllByRolesIsClientAndActifIsTrue();
+		return new ResponseEntity<>(u, HttpStatusCode.valueOf(200));
+	}
+
+	// #region ADMIN VALUE
+	// @GetMapping("/admin-insert")
+	// public ResponseEntity AjoutAdmin() {
+	// Utilisateur user = new Utilisateur();
+	// user.setEmail("admin@eurotec.com");
+	// user.setNom("ADMIN");
+	// user.setPrenom("EUROTEC ADMIN");
+	// user.setNumero("ADMIN");
+	// user.setSiret("ADMIN");
+	// user.setPassword(passwordEncoder.encode("ADMIN_EUROTEC"));
+	// user.setRoles(CstRole.ADMIN);
+
+	// utilisateurRepository.save(user);
+
+	// return new ResponseEntity<>(HttpStatusCode.valueOf(200));
+	// }
+	// #endregion
+
+	@PostMapping(path = "/image/{idBoutique}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> insertImage(@PathVariable Long idBoutique, @RequestParam MultipartFile photo) {
 		String nomUniqueUUID = UUID.randomUUID().toString();
-		String[] temp = photo.getOriginalFilename().split("\\.") ;
-		String newName = nomUniqueUUID +".png" ;
-		
-			try {
-				
-				Files.createDirectories( Paths.get( PATH_IMAGE ) );
-				
-				BufferedImage srcImage = ImageIO.read(photo.getInputStream()); // Load image
-				BufferedImage scaledImage = Scalr.resize(srcImage, 500); // Scale image
-				
-				File outputfile = new File( Paths.get( PATH_IMAGE +"/" + newName ).toString() );
-				ImageIO.write( scaledImage , "png" , outputfile );
-				
-				Boutique b = boutiqueRepository.findById(idBoutique).get();
-				b.setPhoto( newName );
-				boutiqueRepository.saveAndFlush(b);
-				
-				return new ResponseEntity("{\"result\":\"ok\"}" , HttpStatusCode.valueOf(201) );
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-				return new ResponseEntity("{\"result\":\"erreur serveur\"}" , HttpStatusCode.valueOf(500) );
-			}		
+		String[] temp = photo.getOriginalFilename().split("\\.");
+		String newName = nomUniqueUUID + ".png";
+
+		try {
+
+			Files.createDirectories(Paths.get(PATH_IMAGE));
+
+			BufferedImage srcImage = ImageIO.read(photo.getInputStream()); // Load image
+			BufferedImage scaledImage = Scalr.resize(srcImage, 500); // Scale image
+
+			File outputfile = new File(Paths.get(PATH_IMAGE + "/" + newName).toString());
+			ImageIO.write(scaledImage, "png", outputfile);
+
+			Boutique b = boutiqueRepository.findById(idBoutique).get();
+			b.setPhoto(newName);
+			boutiqueRepository.saveAndFlush(b);
+
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity("{\"result\":\"erreur serveur\"}", HttpStatusCode.valueOf(500));
+		}
 	}
-	
-	@PostMapping(path = "/image/produit/{idProduit}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE  )
-	public ResponseEntity<String> insertImageProduit(@PathVariable Long idProduit,@RequestParam MultipartFile photo) 
-	{	
+
+	@PostMapping(path = "/image/produit/{idProduit}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> insertImageProduit(@PathVariable Long idProduit, @RequestParam MultipartFile photo) {
 		String nomUniqueUUID = UUID.randomUUID().toString();
-		String[] temp = photo.getOriginalFilename().split("\\.") ;
-		String newName = nomUniqueUUID +".png";
-		
-			try {
-				
-				Files.createDirectories( Paths.get( PATH_IMAGE ) );
-				
-				BufferedImage srcImage = ImageIO.read(photo.getInputStream()); // Load image
-				BufferedImage scaledImage = Scalr.resize(srcImage, 500); // Scale image
-				
-				File outputfile = new File( Paths.get( PATH_IMAGE +"/" +newName ).toString() );
-				ImageIO.write( scaledImage , "png" , outputfile );
-				
-				Produit p = produitRepository.findById(idProduit).get();
-				p.setPhoto( newName );
-				produitRepository.saveAndFlush(p);
-				return new ResponseEntity("{\"result\":\"ok\"}" , HttpStatusCode.valueOf(201) );	
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-				
-				return new ResponseEntity("{\"result\":\"erreur serveur\"}" , HttpStatusCode.valueOf(500) );
-			}
-			
+		String[] temp = photo.getOriginalFilename().split("\\.");
+		String newName = nomUniqueUUID + ".png";
+
+		try {
+
+			Files.createDirectories(Paths.get(PATH_IMAGE));
+
+			BufferedImage srcImage = ImageIO.read(photo.getInputStream()); // Load image
+			BufferedImage scaledImage = Scalr.resize(srcImage, 500); // Scale image
+
+			File outputfile = new File(Paths.get(PATH_IMAGE + "/" + newName).toString());
+			ImageIO.write(scaledImage, "png", outputfile);
+
+			Produit p = produitRepository.findById(idProduit).get();
+			p.setPhoto(newName);
+			produitRepository.saveAndFlush(p);
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
+
+		} catch (Exception e) {
+			e.printStackTrace();
+
+			return new ResponseEntity("{\"result\":\"erreur serveur\"}", HttpStatusCode.valueOf(500));
+		}
+
 	}
-	
-	
-	
-	@GetMapping( path = "/liste-commandes/{idBoutique}")
-	public ResponseEntity< List<CommandeListeDto> > prendreCommande(@RequestParam(name = "search") Optional<String> search, @RequestParam(name = "statut") Optional<String> statut , @PathVariable(name = "idBoutique") Long idBoutique )
-	{
-		List<Commande> liste = commandeRepository.rechercher( search.orElse("") , statut.orElse("") , idBoutique);
+
+	@GetMapping(path = "/liste-commandes/{idBoutique}")
+	public ResponseEntity<List<CommandeListeDto>> prendreCommande(
+			@RequestParam(name = "search") Optional<String> search,
+			@RequestParam(name = "statut") Optional<String> statut,
+			@PathVariable(name = "idBoutique") Long idBoutique) {
+		List<Commande> liste = commandeRepository.rechercher(search.orElse(""), statut.orElse(""), idBoutique);
 		List<CommandeListeDto> result = new ArrayList<CommandeListeDto>();
-		for( Commande c : liste ) 
-		{
-			CommandeListeDto dto = new CommandeListeDto(c , ligneCommandeRepository.findByCommande(c) );	
+		for (Commande c : liste) {
+			CommandeListeDto dto = new CommandeListeDto(c, ligneCommandeRepository.findByCommande(c));
 			result.add(dto);
 		}
-		return new ResponseEntity(result  , HttpStatusCode.valueOf(200) );
+		return new ResponseEntity(result, HttpStatusCode.valueOf(200));
 	}
-	
-	@GetMapping( path = "/liste-commandes-client/{idClient}")
-	public ResponseEntity< List<CommandeListeDto> > prendreCommandeClient( @RequestParam(name = "statut") Optional<String> statut , @PathVariable(name = "idClient") Long idClient )
-	{
-		List<Commande> liste = commandeRepository.rechercherParclient(  statut.orElse("") , idClient);
+
+	@GetMapping(path = "/liste-commandes-client/{idClient}")
+	public ResponseEntity<List<CommandeListeDto>> prendreCommandeClient(
+			@RequestParam(name = "statut") Optional<String> statut, @PathVariable(name = "idClient") Long idClient) {
+
+		Client client = clientRepository.findById(idClient).get();
+		if (!client.getUtilisateur().getActif()) {
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
+		}
+		List<Commande> liste = commandeRepository.rechercherParclient(statut.orElse(""), idClient);
 		List<CommandeListeDto> result = new ArrayList<CommandeListeDto>();
-		for( Commande c : liste ) 
-		{
-			CommandeListeDto dto = new CommandeListeDto(c , ligneCommandeRepository.findByCommande(c) );	
+		for (Commande c : liste) {
+			CommandeListeDto dto = new CommandeListeDto(c, ligneCommandeRepository.findByCommande(c));
 			result.add(dto);
 		}
-		return new ResponseEntity(result  , HttpStatusCode.valueOf(200) );
+		return new ResponseEntity(result, HttpStatusCode.valueOf(200));
 	}
-	
-	
+
 	@Transactional
-	@PostMapping( path = "/upload-excel-rest/{id}" , consumes = MediaType.MULTIPART_FORM_DATA_VALUE )
-	public ResponseEntity<String> insertProduit(@PathVariable Long id , @RequestParam MultipartFile fichier) 
-	{
-		Boutique b  = boutiqueRepository.findById(id).get(); 
-			
-					try {
-								
-							HSSFWorkbook workbook = new HSSFWorkbook( fichier.getInputStream() );
-							HSSFSheet  sheet = workbook.getSheetAt(0);
-							int i = 0 ;
-							for(Row row : sheet) 
-							{
-								String code;
-								String nom;
-								Double prix;
-								Integer nombre_article_colis;
-								String code_barre;
-								String famille;
-								String code_famille;
-								String etat ;
-								Integer stock_reel;
-								Integer stock_virtuel;
-								String dispo;
-								String rupture;
-								
-								Produit p;
-								
-								if( i != 0)
-								{
-									code = row.getCell(0).getStringCellValue(); 
-									nom = row.getCell(1).getStringCellValue(); 
-									prix = Double.valueOf( row.getCell(2).getNumericCellValue() );
-									nombre_article_colis = Integer.valueOf(  Double.valueOf( row.getCell(3).getNumericCellValue() ).intValue() ) ;
-									code_barre = row.getCell(4).getStringCellValue();
-									famille = row.getCell(5).getStringCellValue();
-									code_famille = row.getCell(6).getStringCellValue();
-									
-									etat = row.getCell(8).getStringCellValue();
-									stock_virtuel = Integer.valueOf(  Double.valueOf( row.getCell(9).getNumericCellValue() ).intValue() ) ;
-									stock_reel = Integer.valueOf(  Double.valueOf( row.getCell(10).getNumericCellValue() ).intValue() ) ;
-									dispo = row.getCell(11).getStringCellValue();
-									rupture = row.getCell(12).getStringCellValue();
-									
-									p = new Produit();
-									p.setCodeArticle(code);
-									p.setNom(nom);
-									p.setPrix3(prix);
-									p.setNombreArticleColis(nombre_article_colis);
-									p.setCodeBarre(code_barre);
-									p.setFamille(famille);
-									p.setFamilleCode(code_famille);
-									p.setEtat(etat);
-									p.setDispoWeb(dispo);
-									p.setRuptureDeStock(rupture);
-									p.setBoutique(b);
-									
-									produitRepository.save(p);
-										
-								}
-								i++;
-							}
-							return new ResponseEntity("{\"result\":\"ok\"}" , HttpStatusCode.valueOf(201) );									
-						
-					} catch (Exception e) 
-					{
-						return new ResponseEntity("{\"error\":\"erreur\"}" , HttpStatusCode.valueOf(500) );	
-					}
-				
-	}
-	
-	@PostMapping( path = "/insert-panier")
-	public ResponseEntity< String > insertCommande(@RequestBody PanierDto p )
-	{
-			
-			// test si deja insere 
-			Utilisateur client =  utilisateurRepository.getReferenceById(p.getClient()) ;
-			Produit produit = produitRepository.getReferenceById( p.getProduit() );
-			int nb = panierRepository.countByProduitAndClient(produit,client);
-			
-			if( nb == 0)
-			{
-				Panier panier = new Panier();
-				panier.setChoix( p.getChoix() );
-				panier.setClient(client);
-				panier.setProduit(produit);
-				panier.setQuantite( p.getQuantite() );
-				panierRepository.saveAndFlush(panier);
+	@PostMapping(path = "/upload-excel-rest/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<String> insertProduit(@PathVariable Long id, @RequestParam MultipartFile fichier) {
+		Boutique b = boutiqueRepository.findById(id).get();
+
+		try {
+
+			HSSFWorkbook workbook = new HSSFWorkbook(fichier.getInputStream());
+			HSSFSheet sheet = workbook.getSheetAt(0);
+			int i = 0;
+			for (Row row : sheet) {
+				String code;
+				String nom;
+				Double prix;
+				Integer nombre_article_colis;
+				String code_barre;
+				String famille;
+				String code_famille;
+				String etat;
+				Integer stock_reel;
+				Integer stock_virtuel;
+				String dispo;
+				String rupture;
+
+				Produit p;
+
+				if (i != 0) {
+					code = row.getCell(0).getStringCellValue();
+					nom = row.getCell(1).getStringCellValue();
+					prix = Double.valueOf(row.getCell(2).getNumericCellValue());
+					nombre_article_colis = Integer
+							.valueOf(Double.valueOf(row.getCell(3).getNumericCellValue()).intValue());
+					code_barre = row.getCell(4).getStringCellValue();
+					famille = row.getCell(5).getStringCellValue();
+					code_famille = row.getCell(6).getStringCellValue();
+
+					etat = row.getCell(8).getStringCellValue();
+					stock_virtuel = Integer.valueOf(Double.valueOf(row.getCell(9).getNumericCellValue()).intValue());
+					stock_reel = Integer.valueOf(Double.valueOf(row.getCell(10).getNumericCellValue()).intValue());
+					dispo = row.getCell(11).getStringCellValue();
+					rupture = row.getCell(12).getStringCellValue();
+
+					p = new Produit();
+					p.setCodeArticle(code);
+					p.setNom(nom);
+					p.setPrix3(prix);
+					p.setNombreArticleColis(nombre_article_colis);
+					p.setCodeBarre(code_barre);
+					p.setFamille(famille);
+					p.setFamilleCode(code_famille);
+					p.setEtat(etat);
+					p.setDispoWeb(dispo);
+					p.setRuptureDeStock(rupture);
+					p.setBoutique(b);
+
+					produitRepository.save(p);
+
+				}
+				i++;
 			}
-			
-			return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(201) );	
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
+
+		} catch (Exception e) {
+			return new ResponseEntity("{\"error\":\"erreur\"}", HttpStatusCode.valueOf(500));
+		}
+
 	}
-	
-	@PostMapping( path = "/insert-favori")
-	public ResponseEntity< String > insertCommande(@RequestBody FavoriDtoInsert p )
-	{
-			
-			// test si deja insere 
-			Utilisateur client =  utilisateurRepository.getReferenceById(p.client()) ;
-			Produit produit = produitRepository.getReferenceById( p.produit() );
-			
-			int nb = favoriRepository.countByProduitAndClient(produit,client);
-			
-			if( nb == 0)
-			{
-				Favori f = new Favori();
-				f.setClient(client);
-				f.setProduit(produit);
-				favoriRepository.saveAndFlush(f);
-			}
-			
-			return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(201) );	
+
+	@PostMapping(path = "/insert-panier")
+	public ResponseEntity<String> insertCommande(@RequestBody PanierDto p) {
+		// test si deja insere
+		Utilisateur client = utilisateurRepository.getReferenceById(p.getClient());
+
+		if (client.getActif() == false) {
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
+		}
+
+		Produit produit = produitRepository.getReferenceById(p.getProduit());
+		int nb = panierRepository.countByProduitAndClient(produit, client);
+
+		if (nb == 0) {
+			Panier panier = new Panier();
+			panier.setChoix(p.getChoix());
+			panier.setClient(client);
+			panier.setProduit(produit);
+			panier.setQuantite(p.getQuantite());
+			panierRepository.saveAndFlush(panier);
+		}
+
+		return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
 	}
-	
-	@GetMapping( path = "/panier")
-	public ResponseEntity< List<Panier> > panier( Long idclient )
-	{
-			List<Panier> liste = panierRepository.findByClientId(idclient);
-			return new ResponseEntity( liste  , HttpStatusCode.valueOf(200) );	
+
+	@PostMapping(path = "/vider-panier")
+	@Transactional
+	public ResponseEntity<String> viderPanier(@RequestBody Long idClient) {
+		panierRepository.deleteAll(panierRepository.findByClientId(idClient));
+		return new ResponseEntity<>("{\"result\":\"ok\"}", HttpStatusCode.valueOf(200));
 	}
-	
-	@GetMapping( path = "/favori")
-	public ResponseEntity< List<Favori> > favori( Long idclient )
-	{
-			List<Favori> liste = favoriRepository.findByClientId(idclient);
-			
-			return new ResponseEntity( liste  , HttpStatusCode.valueOf(200) );	
+
+	@PostMapping(path = "/insert-favori")
+	public ResponseEntity<String> insertCommande(@RequestBody FavoriDtoInsert p) {
+
+		// test si deja insere
+		Utilisateur client = utilisateurRepository.getReferenceById(p.client());
+
+		if (client.getActif() == false) {
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
+		}
+
+		Produit produit = produitRepository.getReferenceById(p.produit());
+
+		int nb = favoriRepository.countByProduitAndClient(produit, client);
+
+		if (nb == 0) {
+			Favori f = new Favori();
+			f.setClient(client);
+			f.setProduit(produit);
+			favoriRepository.saveAndFlush(f);
+		}
+
+		return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
 	}
-	
-	
-	
-	@GetMapping( path = "/mesboutiques/{idUtilisateur}")
-	public ResponseEntity< List<MesBoutiquesDto> > mesboutiques( @PathVariable(name = "idUtilisateur") Long idUtilisateur )
-	{
+
+	@GetMapping(path = "/panier")
+	public ResponseEntity<List<Panier>> panier(Long idclient) {
+		List<Panier> liste = panierRepository.findByClientId(idclient);
+		return new ResponseEntity(liste, HttpStatusCode.valueOf(200));
+	}
+
+	@GetMapping(path = "/favori")
+	public ResponseEntity<List<Favori>> favori(Long idclient) {
+		List<Favori> liste = favoriRepository.findByClientId(idclient);
+
+		return new ResponseEntity(liste, HttpStatusCode.valueOf(200));
+	}
+
+	@GetMapping(path = "/mesboutiques/{idUtilisateur}")
+	public ResponseEntity<List<MesBoutiquesDto>> mesboutiques(
+			@PathVariable(name = "idUtilisateur") Long idUtilisateur) {
 		List<MesBoutiques> liste = mesBoutiquesRepository.mesboutiques(idUtilisateur);
-		
+
 		List<MesBoutiquesDto> result = new ArrayList<MesBoutiquesDto>();
-		for( MesBoutiques c : liste ) 
-		{
-			MesBoutiquesDto dto = new MesBoutiquesDto(c);	
+		for (MesBoutiques c : liste) {
+			MesBoutiquesDto dto = new MesBoutiquesDto(c);
 			result.add(dto);
 		}
-		return new ResponseEntity(result  , HttpStatusCode.valueOf(200) );
+		return new ResponseEntity(result, HttpStatusCode.valueOf(200));
 	}
-	
-	@GetMapping( path = "/categories")
-	public ResponseEntity< List<String> > rechercherCategorie()
-	{
+
+	@GetMapping(path = "/categories")
+	public ResponseEntity<List<String>> rechercherCategorie() {
 		List<String> liste = produitRepository.rechercherCategorie();
-		
-		return new ResponseEntity(liste  , HttpStatusCode.valueOf(200) );
+
+		return new ResponseEntity(liste, HttpStatusCode.valueOf(200));
 	}
-	
+
 	@PostMapping(path = "/insert-commande")
-	public ResponseEntity< String > inserCommande(@RequestBody CommandeInsertDto commande )
-	{
-		try
-		{
-			// recuperer client ou insert 
-			Client c = clientRepository.findByUtilisateurId( commande.client() ).orElse(null);
-			Boutique b = boutiqueRepository.getReferenceById( commande.boutique() );
-			
-			if( c == null )
-			{	
-				Utilisateur u = utilisateurRepository.getReferenceById( commande.client() );
-				c = new Client();
+	public ResponseEntity<String> inserCommande(@RequestBody CommandeInsertDto commande) {
+		try {
+
+			Utilisateur u = utilisateurRepository.getReferenceById(commande.client());
+			Boutique b = boutiqueRepository.getReferenceById(commande.boutique());
+
+			userService.insertClientIfNull(u, b);
+
+			// recuperer client ou insert
+			Client c = clientRepository.findByUtilisateurId(commande.client()).orElse(null);
+
+			if (!c.getUtilisateur().getActif()) {
+				return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
+			}
+
+			if (c.getBoutique() == null) {
 				c.setBoutique(b);
-				c.setEmail(u.getEmail());
-				c.setNom(u.getNom());
-				c.setNumero(u.getNumero());
-				c.setPrenom(u.getPrenom());
-				c.setSiret(u.getSiret());
-				c.setTva(Double.valueOf(0.2));
-				c.setType("standard");
-				c.setUtilisateur(u);
 				clientRepository.saveAndFlush(c);
 			}
-			
+
 			Commande cmd = new Commande();
 			cmd.setBoutique(b);
 			cmd.setClient(c);
@@ -466,201 +497,276 @@ public class ApiController {
 			cmd.setMethodePaiement(commande.methodePaiement());
 			cmd.setPointLivraison(commande.pointLivraison());
 			cmd.setStatut("en_attente");
-			cmd.setTva( c.getTva() );
-			
+			cmd.setTva(c.getTva());
+
 			commandeRepository.saveAndFlush(cmd);
-			
-			// get all ligne commande insert all then delete 
+
+			// get all ligne commande insert all then delete
 			List<Panier> liste = panierRepository.findByClientId(commande.client());
 			Produit produitTEmp;
-			for(Panier panier : liste) 
-			{
-				produitTEmp =  panier.getProduit();
+			for (Panier panier : liste) {
+				produitTEmp = panier.getProduit();
 				LigneCommande ligne = new LigneCommande();
 				ligne.setCommande(cmd);
-				ligne.setProduit( produitTEmp );
-				ligne.setQuantite( panier.getQuantite() );
-				
+				ligne.setProduit(produitTEmp);
+				ligne.setQuantite(panier.getQuantite());
+
 				// prix
-				if( panier.getQuantite() < produitTEmp.getQuantiteComplet() ) 
-				{
-					ligne.setPrix( produitTEmp.getPrixUnitaireSousColis() );
+				if (panier.getQuantite() < produitTEmp.getQuantiteComplet()) {
+					ligne.setPrix(produitTEmp.getPrixUnitaireSousColis());
+				} else {
+					ligne.setPrix(produitTEmp.getPrixUnitaireColis());
 				}
-				else 
-				{
-					ligne.setPrix( produitTEmp.getPrixUnitaireColis() );
-				}
-				
+
 				// nombre colis
 				int nombreColis = 1;
 				nombreColis = panier.getQuantite() / produitTEmp.getQuantiteComplet();
-				if( (panier.getQuantite() % produitTEmp.getQuantiteComplet()) != 0 )
-					nombreColis = nombreColis + 1 ;
-					
+				if ((panier.getQuantite() % produitTEmp.getQuantiteComplet()) != 0)
+					nombreColis = nombreColis + 1;
+
 				/*
-                if( panier.getQuantite() < produitTEmp.getQuantiteComplet() ) 
-				{
-                	nombreColis = panier.getQuantite() / produitTEmp.getQuantitePartiel();
-				}
-				else 
-				{
-					nombreColis = panier.getQuantite() / produitTEmp.getQuantiteComplet();
-					int reste = ( panier.getQuantite() - nombreColis*produitTEmp.getQuantiteComplet() ) / produitTEmp.getQuantitePartiel() ;
-					nombreColis = nombreColis + reste ;
-				}
-				*/
-                
-                String choix = nombreColis +" colis ";
-                ligne.setChoix(choix);
-				
+				 * if( panier.getQuantite() < produitTEmp.getQuantiteComplet() )
+				 * {
+				 * nombreColis = panier.getQuantite() / produitTEmp.getQuantitePartiel();
+				 * }
+				 * else
+				 * {
+				 * nombreColis = panier.getQuantite() / produitTEmp.getQuantiteComplet();
+				 * int reste = ( panier.getQuantite() -
+				 * nombreColis*produitTEmp.getQuantiteComplet() ) /
+				 * produitTEmp.getQuantitePartiel() ;
+				 * nombreColis = nombreColis + reste ;
+				 * }
+				 */
+
+				String choix = nombreColis + " colis ";
+				ligne.setChoix(choix);
+
 				ligneCommandeRepository.saveAndFlush(ligne);
 				panierRepository.delete(panier);
 			}
-		
-			// creation PDF facture 
-			CommandeListeDto commandeDTO = new CommandeListeDto( cmd , ligneCommandeRepository.findByCommande( cmd ) );	
+
+			// creation PDF facture
+			CommandeListeDto commandeDTO = new CommandeListeDto(cmd, ligneCommandeRepository.findByCommande(cmd));
 			List<LigneCommandeListeDto> ligneCommandeDTO = commandeDTO.getProduits();
-			Double tvaTemp = cmd.getClient().getTva() * 100 ;
-			String tva =  tvaTemp.intValue() + "%" ;
-			Double total = commandeDTO.getTotal() ;
-			
+			Double tvaTemp = cmd.getClient().getTva() * 100;
+			String tva = tvaTemp.intValue() + "%";
+			Double total = commandeDTO.getTotal();
+
 			JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(ligneCommandeDTO);
-				
+
 			InputStream in = new ClassPathResource(PATH_JASPER + "/report.jrxml").getInputStream();
-			if( !Files.exists( Paths.get("report.jrxml") ) )
-			{
+			if (!Files.exists(Paths.get("report.jrxml"))) {
 				File targetFile = new File("report.jrxml");
-				Files.copy( in, Paths.get("report.jrxml")  );
+				Files.copy(in, Paths.get("report.jrxml"));
 			}
-			
-			JasperReport jasperReport = JasperCompileManager.compileReport( Paths.get("report.jrxml").toString() );
-			
+
+			JasperReport jasperReport = JasperCompileManager.compileReport(Paths.get("report.jrxml").toString());
+
 			Map<String, Object> parameters = new HashMap<>();
-			
-			parameters.put("adresseLivraison", commandeDTO.getLivraison() );
-			parameters.put("nomClient", commandeDTO.getNom().toUpperCase() );
-			parameters.put("prenomClient", commandeDTO.getPrenom().toUpperCase() );
-			parameters.put("emailClient", commandeDTO.getEmail() );
-			parameters.put("numeroClient", commandeDTO.getNumero() );
-			parameters.put("numeroCommande", commandeDTO.getId().toString() );
-			
-			String jour = ( commandeDTO.getDateSaisie().getDayOfMonth()  < 10 ) ? "0"+commandeDTO.getDateSaisie().getDayOfMonth() : ""+commandeDTO.getDateSaisie().getDayOfMonth() ;
-			String mois = ( commandeDTO.getDateSaisie().getMonthValue()  < 10 ) ? "0"+commandeDTO.getDateSaisie().getMonthValue() : ""+commandeDTO.getDateSaisie().getMonthValue() ;
-			parameters.put("dateCommande", jour+"/"+mois+"/"+commandeDTO.getDateSaisie().getYear() );
-			
-			parameters.put("tva", tva );
-			parameters.put("total", total );
-			
-			parameters.put("listeProduit", dataSource );
-			
-			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters , new JREmptyDataSource() );
-			
-			Files.createDirectories( Paths.get( PATH_PDF ) );
-			JasperExportManager.exportReportToPdfFile(jasperPrint, Paths.get( PATH_PDF + "/commande_" +cmd.getId()+".pdf"  ).toString() ) ;
-			
-			return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(201) );
-			
-		}
-		catch (Exception e) {
+
+			parameters.put("adresseLivraison", commandeDTO.getLivraison());
+			parameters.put("nomClient", commandeDTO.getNom().toUpperCase());
+			parameters.put("prenomClient", commandeDTO.getPrenom().toUpperCase());
+			parameters.put("emailClient", commandeDTO.getEmail());
+			parameters.put("numeroClient", commandeDTO.getNumero());
+			parameters.put("numeroCommande", commandeDTO.getId().toString());
+
+			String jour = (commandeDTO.getDateSaisie().getDayOfMonth() < 10)
+					? "0" + commandeDTO.getDateSaisie().getDayOfMonth()
+					: "" + commandeDTO.getDateSaisie().getDayOfMonth();
+			String mois = (commandeDTO.getDateSaisie().getMonthValue() < 10)
+					? "0" + commandeDTO.getDateSaisie().getMonthValue()
+					: "" + commandeDTO.getDateSaisie().getMonthValue();
+			parameters.put("dateCommande", jour + "/" + mois + "/" + commandeDTO.getDateSaisie().getYear());
+
+			parameters.put("tva", tva);
+			parameters.put("total", total);
+
+			parameters.put("listeProduit", dataSource);
+
+			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, new JREmptyDataSource());
+
+			Files.createDirectories(Paths.get(PATH_PDF));
+			JasperExportManager.exportReportToPdfFile(jasperPrint,
+					Paths.get(PATH_PDF + "/commande_" + cmd.getId() + ".pdf").toString());
+
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
+
+		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
-			return new ResponseEntity( "{\"result\":\"error\"}"  , HttpStatusCode.valueOf(500) );
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(500));
 		}
-		
-		
+
 	}
-	
-	@GetMapping( path = "/deleteFavori/{p}/{u}")
-	public ResponseEntity< String > deleteFavori(@PathVariable(name = "p") Long p ,@PathVariable(name = "u") Long u )
-	{
+
+	@PostMapping(path = "/boutique/{boutiqueId}/commande-client")
+@Operation(summary = "Création d'une commande client par une boutique", responses = {
+    @ApiResponse(responseCode = "201", description = "Commande créée avec succès"),
+    @ApiResponse(responseCode = "401", description = "Non autorisé"),
+    @ApiResponse(responseCode = "404", description = "Ressource non trouvée"),
+    @ApiResponse(responseCode = "500", description = "Erreur serveur")
+})
+public ResponseEntity<String> passerCommandeClientParBoutique(
+    @PathVariable Long boutiqueId,
+    @RequestBody BoutiqueCommandeRequestDto requestDto) {
+    try {
+        // Vérification de la boutique
+        Boutique boutique = boutiqueRepository.findById(boutiqueId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Boutique non trouvée"));
+
+        // Vérification du client
+        Utilisateur clientUtilisateur = utilisateurRepository.findById(requestDto.clientId())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client non trouvé"));
+
+        if (!clientUtilisateur.getActif()) {
+            return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Client inactif\"}", 
+                HttpStatus.BAD_REQUEST);
+        }
+
+        // Vérification des produits
+        for (LigneInsertDto ligne : requestDto.lignes()) {
+            Produit produit = produitRepository.findById(ligne.produit())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
+                    "Produit non trouvé: " + ligne.produit()));
+            
+            // Vérifier que le produit appartient à la boutique
+            if (!produit.getBoutique().getId().equals(boutiqueId)) {
+                return new ResponseEntity<>(
+                    "{\"result\":\"error\", \"message\":\"Produit " + produit.getId() + " n'appartient pas à la boutique\"}", 
+                    HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // Gestion du panier - Supprimer l'ancien panier
+        panierRepository.deleteAll(panierRepository.findByClientId(requestDto.clientId()));
+
+        // Création du nouveau panier temporaire
+        for (LigneInsertDto ligne : requestDto.lignes()) {
+            Panier nouveauPanier = new Panier();
+            nouveauPanier.setProduit(produitRepository.getReferenceById(ligne.produit()));
+            nouveauPanier.setClient(clientUtilisateur);
+            nouveauPanier.setQuantite(ligne.quantite());
+            nouveauPanier.setChoix(ligne.quantite() + " articles"); // Ajout du choix manquant
+            panierRepository.save(nouveauPanier);
+        }
+
+        // S'assurer que le client est lié à la boutique
+        Client client = clientRepository.findByUtilisateurId(requestDto.clientId())
+            .orElseGet(() -> {
+                Client newClient = userService.insertClientIfNull(clientUtilisateur, boutique);
+                return newClient;
+            });
+
+        // Création de la commande
+        CommandeInsertDto commandeDto = new CommandeInsertDto(
+            requestDto.dateEcheance(),
+            requestDto.methodePaiement(),
+            requestDto.pointLivraison(),
+            requestDto.clientId(),
+            boutiqueId,
+            client.getTva() // Utilisation de la TVA du client
+        );
+
+        return inserCommande(commandeDto);
+
+    } catch (ResponseStatusException e) {
+        throw e;
+    } catch (Exception e) {
+        e.printStackTrace();
+        return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Erreur serveur\"}", 
+            HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+
+	@GetMapping(path = "/deleteFavori/{p}/{u}")
+	public ResponseEntity<String> deleteFavori(@PathVariable(name = "p") Long p, @PathVariable(name = "u") Long u) {
 		Favori favori = favoriRepository.findByProduitIdAndClientId(p, u);
 		favoriRepository.delete(favori);
-		
-		return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(200) );
+
+		return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(200));
 	}
-	
-	@GetMapping( path = "/create-commande-pdf/{id}")
-	public ResponseEntity< String > pdf(@PathVariable(name = "id") Long id  )
-	{
-		
-		try
-		{
-		
-					Commande cmd = commandeRepository.getReferenceById(id);
-					// creation PDF facture 
-					CommandeListeDto commandeDTO = new CommandeListeDto( cmd , ligneCommandeRepository.findByCommande( cmd ) );	
-					List<LigneCommandeListeDto> ligneCommandeDTO = commandeDTO.getProduits();
-					Double tvaTemp = commandeDTO.getTva() ;
-					String tva =  tvaTemp*100 + "%" ;
-					Double total = commandeDTO.getTotal() + ( commandeDTO.getTotal()*commandeDTO.getTva() );
-					
-					JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(ligneCommandeDTO);
-						
-					InputStream in = new ClassPathResource(PATH_JASPER+"/report.jrxml").getInputStream();
-					if( !Files.exists( Paths.get("report.jrxml") ) )
-					{
-						File targetFile = new File("report.jrxml");
-						Files.copy( in, Paths.get("report.jrxml")  );
-					}
-					
-					JasperReport jasperReport = JasperCompileManager.compileReport( Paths.get("report.jrxml").toString() );
-					/*
-					File targetFile = new File("report.jrxml");
-					Files.copy( in, targetFile.toPath() , StandardCopyOption.REPLACE_EXISTING );
-					JasperReport jasperReport = JasperCompileManager.compileReport(targetFile.getAbsolutePath());
-					*/
-					Map<String, Object> parameters = new HashMap<>();
-					
-					parameters.put("adresseLivraison", commandeDTO.getLivraison() );
-					parameters.put("nomClient", commandeDTO.getNom().toUpperCase() );
-					parameters.put("prenomClient", commandeDTO.getPrenom().toUpperCase() );
-					parameters.put("emailClient", commandeDTO.getEmail() );
-					parameters.put("numeroClient", commandeDTO.getNumero() );
-					parameters.put("numeroCommande", commandeDTO.getId().toString() );
-					
-					String jour = ( commandeDTO.getDateSaisie().getDayOfMonth()  < 10 ) ? "0"+commandeDTO.getDateSaisie().getDayOfMonth() : ""+commandeDTO.getDateSaisie().getDayOfMonth() ;
-					String mois = ( commandeDTO.getDateSaisie().getMonthValue()  < 10 ) ? "0"+commandeDTO.getDateSaisie().getMonthValue() : ""+commandeDTO.getDateSaisie().getMonthValue() ;
-					parameters.put("dateCommande", jour+"/"+mois+"/"+commandeDTO.getDateSaisie().getYear() );
-					
-					parameters.put("tva", tva );
-					parameters.put("total", total );
-					
-					parameters.put("listeProduit", dataSource );
-					
-					JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters , new JREmptyDataSource() );
-					
-					Files.createDirectories( Paths.get( PATH_PDF ) );
-					JasperExportManager.exportReportToPdfFile(jasperPrint, Paths.get( PATH_PDF+"/commande_" +cmd.getId()+".pdf"  ).toString() ) ;
-					
-					return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(201) );
-					
-		}
-		catch (Exception e) {
+
+	@GetMapping(path = "/create-commande-pdf/{id}")
+	public ResponseEntity<String> pdf(@PathVariable(name = "id") Long id) {
+
+		try {
+
+			Commande cmd = commandeRepository.getReferenceById(id);
+			// creation PDF facture
+			CommandeListeDto commandeDTO = new CommandeListeDto(cmd, ligneCommandeRepository.findByCommande(cmd));
+			List<LigneCommandeListeDto> ligneCommandeDTO = commandeDTO.getProduits();
+			Double tvaTemp = commandeDTO.getTva();
+			String tva = tvaTemp * 100 + "%";
+			Double total = commandeDTO.getTotal() + (commandeDTO.getTotal() * commandeDTO.getTva());
+
+			JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(ligneCommandeDTO);
+
+			InputStream in = new ClassPathResource(PATH_JASPER + "/report.jrxml").getInputStream();
+			if (!Files.exists(Paths.get("report.jrxml"))) {
+				File targetFile = new File("report.jrxml");
+				Files.copy(in, Paths.get("report.jrxml"));
+			}
+
+			JasperReport jasperReport = JasperCompileManager.compileReport(Paths.get("report.jrxml").toString());
+			/*
+			 * File targetFile = new File("report.jrxml");
+			 * Files.copy( in, targetFile.toPath() , StandardCopyOption.REPLACE_EXISTING );
+			 * JasperReport jasperReport =
+			 * JasperCompileManager.compileReport(targetFile.getAbsolutePath());
+			 */
+			Map<String, Object> parameters = new HashMap<>();
+
+			parameters.put("adresseLivraison", commandeDTO.getLivraison());
+			parameters.put("nomClient", commandeDTO.getNom().toUpperCase());
+			parameters.put("prenomClient", commandeDTO.getPrenom().toUpperCase());
+			parameters.put("emailClient", commandeDTO.getEmail());
+			parameters.put("numeroClient", commandeDTO.getNumero());
+			parameters.put("numeroCommande", commandeDTO.getId().toString());
+
+			String jour = (commandeDTO.getDateSaisie().getDayOfMonth() < 10)
+					? "0" + commandeDTO.getDateSaisie().getDayOfMonth()
+					: "" + commandeDTO.getDateSaisie().getDayOfMonth();
+			String mois = (commandeDTO.getDateSaisie().getMonthValue() < 10)
+					? "0" + commandeDTO.getDateSaisie().getMonthValue()
+					: "" + commandeDTO.getDateSaisie().getMonthValue();
+			parameters.put("dateCommande", jour + "/" + mois + "/" + commandeDTO.getDateSaisie().getYear());
+
+			parameters.put("tva", tva);
+			parameters.put("total", total);
+
+			parameters.put("listeProduit", dataSource);
+
+			JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, parameters, new JREmptyDataSource());
+
+			Files.createDirectories(Paths.get(PATH_PDF));
+			JasperExportManager.exportReportToPdfFile(jasperPrint,
+					Paths.get(PATH_PDF + "/commande_" + cmd.getId() + ".pdf").toString());
+
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
+
+		} catch (Exception e) {
 			e.printStackTrace();
-			return new ResponseEntity( "{\"result\":\"error\"}"  , HttpStatusCode.valueOf(500) );
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(500));
 		}
-			
+
 	}
-	
-	@GetMapping( path = "/notification/{id}")
-	public ResponseEntity< String > notification( @PathVariable(name = "id") Long id )
-	{	
-		
-		try
-		{
-			
-			notificationService.envoyerNotififcationPromotion( produitRepository.getReferenceById(id) );	
-			return new ResponseEntity( "{\"result\":\"ok\"}"  , HttpStatusCode.valueOf(200) );
-			
-		}
-		catch (Exception e) 
-		{
+
+	@GetMapping(path = "/notification/{id}")
+	public ResponseEntity<String> notification(@PathVariable(name = "id") Long id) {
+
+		try {
+
+			notificationService.envoyerNotififcationPromotion(produitRepository.getReferenceById(id));
+			return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(200));
+
+		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
-			return new ResponseEntity( "{\"result\":\"error\"}"  , HttpStatusCode.valueOf(500) );
+			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(500));
 		}
-		
+
 	}
-	
-	
+
 }

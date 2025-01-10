@@ -9,7 +9,21 @@
 	
 	<div layout:fragment="content">
 		<h1>Liste des produits</h1>
-	
+		
+		<div class="d-flex justify-content-end mb-3">
+			<select id="boutique-select" class="form-select">
+				<option value="">Sélectionnez une boutique</option>
+				<option th:each="boutique : ${boutiques}" th:value="${boutique.id}" th:text="${boutique.nom}"></option>
+			</select>
+		</div>
+		<script>
+			document.getElementById('boutique-select').addEventListener('change', function() {
+				var boutiqueId = this.value;
+				if (boutiqueId) {
+					window.location.href = '/produit/liste-produit?boutique=' + boutiqueId;
+				}
+			});
+		</script>
 		<table class="table datagrid" id="liste">
 				<thead class="thead-dark">
 					<tr>
@@ -46,16 +60,16 @@
 	</div>
 	<!-- fin content -->
 	<div layout:fragment="js">
-	     		<script>
-				  $(document).ready(function() {
-					  
-						$('#liste').DataTable({
-								     "language": {
-								         "url": "//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/French.json"
-								     }
-								 });
+		<script>
+			$(document).ready(function() {
 				
-				  });	
-				</script>
+				$('#liste').DataTable({
+								"language": {
+									"url": "//cdn.datatables.net/plug-ins/9dcbecd42ad/i18n/French.json"
+								}
+							});
+		
+			});	
+		</script>
 	</div>   
 </html>		 

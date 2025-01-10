@@ -1,16 +1,10 @@
 package com.eurotec.backend.controller;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
@@ -18,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,13 +24,13 @@ import com.eurotec.backend.entity.Utilisateur;
 import com.eurotec.backend.repository.BoutiqueRepository;
 import com.eurotec.backend.repository.ProduitRepository;
 import com.eurotec.backend.repository.UtilisateurRepository;
-
-import jakarta.servlet.http.HttpServletRequest;
+import com.eurotec.backend.service.UserService;
 
 @Controller
 @RequestMapping(path = { "/" , "/produit"  })
 public class ProduitController 
 {
+
 
 	@Autowired
 	ProduitRepository produitRepository;
@@ -50,14 +43,23 @@ public class ProduitController
 	
 	@Autowired
 	BoutiqueRepository boutiqueRepository;
-	
-	
+
 	@GetMapping(path = { "/" , "/produit/liste-produit" } )
-	public String index(Model model , Authentication auth) 
+	public String index(
+		@RequestParam(name = "boutique", required = false) Long boutique, 
+		Model model , Authentication auth) 
 	{	
-		Utilisateur u = utilisateurRepository.findByEmail(auth.getName()).get();
-		Boutique b  = boutiqueRepository.findByUtilisateur(u).get(0); 
-		model.addAttribute("produits", produitRepository.findByBoutiqueId(b.getId()) );
+		List<Produit> produits = new ArrayList<Produit>();
+		List<Boutique> boutiques = boutiqueRepository.findAll(Sort.by(Sort.Direction.ASC, "nom"));
+		if(boutique==null || boutique<=0) {
+			Boutique btq = boutiqueRepository.findTopBoutiqueNative();
+			produits = produitRepository.findByBoutiqueId(btq.getId());
+		} else {
+			produits = produitRepository.findByBoutiqueId(boutique);
+		} 
+
+		model.addAttribute("boutiques", boutiques );
+		model.addAttribute("produits", produits );
 		return "produit/liste";
 	}
 	
@@ -141,6 +143,5 @@ public class ProduitController
 					}
 				
 	}
-	
 	
 }

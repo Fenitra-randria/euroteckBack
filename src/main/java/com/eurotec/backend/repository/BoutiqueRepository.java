@@ -21,5 +21,8 @@ public interface BoutiqueRepository extends JpaRepository<Boutique, Long>{
 
 	List<Boutique> findByUtilisateurId(Long id);
 
+	@Query(value = "SELECT * FROM boutique LIMIT 1", nativeQuery = true)
+	Boutique findTopBoutiqueNative();
 
+	List<Boutique> findByUtilisateurIdOrderByIdDesc(Long id);
 }
