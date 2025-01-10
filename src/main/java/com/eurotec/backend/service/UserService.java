@@ -12,50 +12,49 @@ import com.eurotec.backend.repository.ClientRepository;
 
 @Service
 public class UserService {
-    
-    
-	@Autowired
-	ClientRepository clientRepository;
 
-    public Boolean IsAdmin(Authentication authentication){
+    @Autowired
+    ClientRepository clientRepository;
+
+    public Boolean IsAdmin(Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities()
-            .stream()
-            .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(CstRole.ADMIN));
+                .stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals(CstRole.ADMIN));
         return isAdmin;
     }
 
-    public void insertClientIfNull(Utilisateur u,Boutique b) {
-		if (!u.getRoles().equals(CstRole.CLIENT))
-			return;
-        Client c =  null;
-        if(b==null)
-        {
+    public Client insertClientIfNull(Utilisateur u, Boutique b) {
+        if (!u.getRoles().equals(CstRole.CLIENT))
+            return null;
+
+        Client c = null;
+        if (b == null) {
             c = clientRepository.findByEmailOrUtilisateurId(u.getEmail(), u.getId()).orElse(null);
-        } else
-        {
-            c = clientRepository.findByEmailOrUtilisateurIdAndBoutiqueId(u.getEmail(), u.getId(), b.getId()).orElse(null);
+        } else {
+            c = clientRepository.findByEmailOrUtilisateurIdAndBoutiqueId(u.getEmail(), u.getId(), b.getId())
+                    .orElse(null);
         }
-        
-		if (c != null)
-        {
+
+        if (c != null) {
             c.setUtilisateur(u);
             clientRepository.save(c);
-            return;   
+            return c;
         }
-        
-		c = new Client();
-		c.setUtilisateur(u);
-		c.setNom(u.getNom());
-		c.setPrenom(u.getPrenom());
-		c.setEmail(u.getEmail());
-		c.setNumero(u.getNumero());
-		c.setSiret(u.getSiret());
-		c.setTva(0.2);
-		c.setType("standard");
-        if(b!=null)
-        {
+
+        c = new Client();
+        c.setUtilisateur(u);
+        c.setNom(u.getNom());
+        c.setPrenom(u.getPrenom());
+        c.setEmail(u.getEmail());
+        c.setNumero(u.getNumero());
+        c.setSiret(u.getSiret());
+        c.setTva(0.2);
+        c.setType("standard");
+        if (b != null) {
             c.setBoutique(b);
         }
-		clientRepository.save(c);
-	}
+        clientRepository.save(c);
+
+        return c;
+    }
 }

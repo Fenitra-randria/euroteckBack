@@ -91,6 +91,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -299,8 +300,9 @@ public class ApiController {
 	public ResponseEntity<List<CommandeListeDto>> prendreCommandeClient(
 			@RequestParam(name = "statut") Optional<String> statut, @PathVariable(name = "idClient") Long idClient) {
 
-		Client client = clientRepository.findById(idClient).get();
-		if (!client.getUtilisateur().getActif()) {
+		Utilisateur clientUtilisateur = utilisateurRepository.findById(idClient)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client non trouvé"));
+		if (!clientUtilisateur.getActif()) {
 			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
 		}
 		List<Commande> liste = commandeRepository.rechercherParclient(statut.orElse(""), idClient);
@@ -602,83 +604,84 @@ public class ApiController {
 	}
 
 	@PostMapping(path = "/boutique/{boutiqueId}/commande-client")
-@Operation(summary = "Création d'une commande client par une boutique", responses = {
-    @ApiResponse(responseCode = "201", description = "Commande créée avec succès"),
-    @ApiResponse(responseCode = "401", description = "Non autorisé"),
-    @ApiResponse(responseCode = "404", description = "Ressource non trouvée"),
-    @ApiResponse(responseCode = "500", description = "Erreur serveur")
-})
-public ResponseEntity<String> passerCommandeClientParBoutique(
-    @PathVariable Long boutiqueId,
-    @RequestBody BoutiqueCommandeRequestDto requestDto) {
-    try {
-        // Vérification de la boutique
-        Boutique boutique = boutiqueRepository.findById(boutiqueId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Boutique non trouvée"));
+	@Operation(summary = "Création d'une commande client par une boutique", responses = {
+			@ApiResponse(responseCode = "201", description = "Commande créée avec succès"),
+			@ApiResponse(responseCode = "401", description = "Non autorisé"),
+			@ApiResponse(responseCode = "404", description = "Ressource non trouvée"),
+			@ApiResponse(responseCode = "500", description = "Erreur serveur")
+	})
+	public ResponseEntity<String> passerCommandeClientParBoutique(
+			@PathVariable Long boutiqueId,
+			@RequestBody BoutiqueCommandeRequestDto requestDto) {
+		try {
+			// Vérification de la boutique
+			Boutique boutique = boutiqueRepository.findById(boutiqueId)
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Boutique non trouvée"));
 
-        // Vérification du client
-        Utilisateur clientUtilisateur = utilisateurRepository.findById(requestDto.clientId())
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client non trouvé"));
+			// Vérification du client
+			Utilisateur clientUtilisateur = utilisateurRepository.findById(requestDto.clientId())
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client non trouvé"));
 
-        if (!clientUtilisateur.getActif()) {
-            return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Client inactif\"}", 
-                HttpStatus.BAD_REQUEST);
-        }
+			if (!clientUtilisateur.getActif()) {
+				return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Client inactif\"}",
+						HttpStatus.BAD_REQUEST);
+			}
 
-        // Vérification des produits
-        for (LigneInsertDto ligne : requestDto.lignes()) {
-            Produit produit = produitRepository.findById(ligne.produit())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, 
-                    "Produit non trouvé: " + ligne.produit()));
-            
-            // Vérifier que le produit appartient à la boutique
-            if (!produit.getBoutique().getId().equals(boutiqueId)) {
-                return new ResponseEntity<>(
-                    "{\"result\":\"error\", \"message\":\"Produit " + produit.getId() + " n'appartient pas à la boutique\"}", 
-                    HttpStatus.BAD_REQUEST);
-            }
-        }
+			// Vérification des produits
+			for (LigneInsertDto ligne : requestDto.lignes()) {
+				Produit produit = produitRepository.findById(ligne.produit())
+						.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+								"Produit non trouvé: " + ligne.produit()));
 
-        // Gestion du panier - Supprimer l'ancien panier
-        panierRepository.deleteAll(panierRepository.findByClientId(requestDto.clientId()));
+				// Vérifier que le produit appartient à la boutique
+				if (!produit.getBoutique().getId().equals(boutiqueId)) {
+					return new ResponseEntity<>(
+							"{\"result\":\"error\", \"message\":\"Produit " + produit.getId()
+									+ " n'appartient pas à la boutique\"}",
+							HttpStatus.BAD_REQUEST);
+				}
+			}
 
-        // Création du nouveau panier temporaire
-        for (LigneInsertDto ligne : requestDto.lignes()) {
-            Panier nouveauPanier = new Panier();
-            nouveauPanier.setProduit(produitRepository.getReferenceById(ligne.produit()));
-            nouveauPanier.setClient(clientUtilisateur);
-            nouveauPanier.setQuantite(ligne.quantite());
-            nouveauPanier.setChoix(ligne.quantite() + " articles"); // Ajout du choix manquant
-            panierRepository.save(nouveauPanier);
-        }
+			// Gestion du panier - Supprimer l'ancien panier
+			panierRepository.deleteAll(panierRepository.findByClientId(requestDto.clientId()));
 
-        // S'assurer que le client est lié à la boutique
-        Client client = clientRepository.findByUtilisateurId(requestDto.clientId())
-            .orElseGet(() -> {
-                Client newClient = userService.insertClientIfNull(clientUtilisateur, boutique);
-                return newClient;
-            });
+			// Création du nouveau panier temporaire
+			for (LigneInsertDto ligne : requestDto.lignes()) {
+				Panier nouveauPanier = new Panier();
+				nouveauPanier.setProduit(produitRepository.getReferenceById(ligne.produit()));
+				nouveauPanier.setClient(clientUtilisateur);
+				nouveauPanier.setQuantite(ligne.quantite());
+				nouveauPanier.setChoix(ligne.quantite() + " articles"); // Ajout du choix manquant
+				panierRepository.save(nouveauPanier);
+			}
 
-        // Création de la commande
-        CommandeInsertDto commandeDto = new CommandeInsertDto(
-            requestDto.dateEcheance(),
-            requestDto.methodePaiement(),
-            requestDto.pointLivraison(),
-            requestDto.clientId(),
-            boutiqueId,
-            client.getTva() // Utilisation de la TVA du client
-        );
+			// S'assurer que le client est lié à la boutique
+			Client client = clientRepository.findByUtilisateurId(requestDto.clientId())
+					.orElseGet(() -> {
+						Client newClient = userService.insertClientIfNull(clientUtilisateur, boutique);
+						return newClient;
+					});
 
-        return inserCommande(commandeDto);
+			// Création de la commande
+			CommandeInsertDto commandeDto = new CommandeInsertDto(
+					requestDto.dateEcheance(),
+					requestDto.methodePaiement(),
+					requestDto.pointLivraison(),
+					requestDto.clientId(),
+					boutiqueId,
+					client.getTva() // Utilisation de la TVA du client
+			);
 
-    } catch (ResponseStatusException e) {
-        throw e;
-    } catch (Exception e) {
-        e.printStackTrace();
-        return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Erreur serveur\"}", 
-            HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-}
+			return inserCommande(commandeDto);
+
+		} catch (ResponseStatusException e) {
+			throw e;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>("{\"result\":\"error\", \"message\":\"Erreur serveur\"}",
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 
 	@GetMapping(path = "/deleteFavori/{p}/{u}")
 	public ResponseEntity<String> deleteFavori(@PathVariable(name = "p") Long p, @PathVariable(name = "u") Long u) {
