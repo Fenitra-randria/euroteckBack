@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.util.ResourceUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -406,9 +407,9 @@ public class ApiController {
 		return new ResponseEntity("{\"result\":\"ok\"}", HttpStatusCode.valueOf(201));
 	}
 
-	@PostMapping(path = "/vider-panier")
+	@DeleteMapping(path = "/vider-panier/{idClient}")
 	@Transactional
-	public ResponseEntity<String> viderPanier(@RequestBody Long idClient) {
+	public ResponseEntity<String> viderPanier(@PathVariable(name = "idClient") Long idClient) {
 		panierRepository.deleteAll(panierRepository.findByClientId(idClient));
 		return new ResponseEntity<>("{\"result\":\"ok\"}", HttpStatusCode.valueOf(200));
 	}
