@@ -1,5 +1,6 @@
 package com.eurotec.backend.service;
 
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -27,14 +28,14 @@ public class UserService {
         if (!u.getRoles().equals(CstRole.CLIENT))
             return null;
 
-        Client c = null;
+        List<Client> clients;
         if (b == null) {
-            c = clientRepository.findByEmailOrUtilisateurId(u.getEmail(), u.getId()).orElse(null);
+            clients = clientRepository.findByEmailOrUtilisateurId(u.getEmail(), u.getId());
         } else {
-            c = clientRepository.findByEmailOrUtilisateurIdAndBoutiqueId(u.getEmail(), u.getId(), b.getId())
-                    .orElse(null);
+            clients = clientRepository.findByEmailOrUtilisateurIdAndBoutiqueId(u.getEmail(), u.getId(), b.getId());
         }
 
+        Client c = clients.stream().findFirst().orElse(null);
         if (c != null) {
             c.setUtilisateur(u);
             clientRepository.save(c);

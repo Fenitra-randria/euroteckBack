@@ -98,6 +98,9 @@ import java.util.UUID;
 
 import javax.imageio.ImageIO;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -158,11 +161,14 @@ public class ApiController {
 	@Value("${jasper.path}")
 	String PATH_JASPER;
 
+	private static final Logger logger = LoggerFactory.getLogger(ApiController.class);
+
 	@PostMapping(path = "/login")
 	@Operation(summary = "connexion", responses = {
 			@ApiResponse(responseCode = "200", description = "Success"),
 			@ApiResponse(responseCode = "401", description = "Non authorisé")
 	})
+
 	public ResponseEntity<Map<String, Object>> login(@RequestBody Login jsonLogin) {
 		Map<String, Object> result = new HashMap<String, Object>();
 		Authentication authentication;
@@ -476,15 +482,17 @@ public class ApiController {
 		try {
 
 			Utilisateur u = utilisateurRepository.getReferenceById(commande.client());
-			Boutique b = boutiqueRepository.getReferenceById(commande.boutique());
+			logger.info("Fetching a with ID: " + u);
+			Boutique b = boutiqueRepository.findById(commande.boutique())
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Boutique non trouvée"));
+			logger.info("Fetching b with ID: " + b);
 
-			userService.insertClientIfNull(u, b);
-
-			// recuperer client ou insert
-			Client c = clientRepository.findByUtilisateurId(commande.client()).orElse(null);
+			Client c = userService.insertClientIfNull(u, b);
+			logger.info("Fetching c with ID: " + c);
 
 			if (!c.getUtilisateur().getActif()) {
-				return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(401));
+				return new ResponseEntity("{\"result\":\"error activation compte\"}",
+						HttpStatusCode.valueOf(401));
 			}
 
 			if (c.getBoutique() == null) {
@@ -599,7 +607,7 @@ public class ApiController {
 		} catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();
-			return new ResponseEntity("{\"result\":\"error\"}", HttpStatusCode.valueOf(500));
+			return new ResponseEntity(e, HttpStatusCode.valueOf(500));
 		}
 
 	}
