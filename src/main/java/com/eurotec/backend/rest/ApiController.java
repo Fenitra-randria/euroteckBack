@@ -522,33 +522,19 @@ public class ApiController {
 				ligne.setProduit(produitTEmp);
 				ligne.setQuantite(panier.getQuantite());
 
-				// prix
+				// Setting the price with null checks
 				if (panier.getQuantite() < produitTEmp.getQuantiteComplet()) {
-					ligne.setPrix(produitTEmp.getPrixUnitaireSousColis());
+					ligne.setPrix(
+							produitTEmp.getPrixUnitaireSousColis() != null ? produitTEmp.getPrixUnitaireSousColis()
+									: 0.0);
 				} else {
-					ligne.setPrix(produitTEmp.getPrixUnitaireColis());
+					ligne.setPrix(
+							produitTEmp.getPrixUnitaireColis() != null ? produitTEmp.getPrixUnitaireColis() : 0.0);
 				}
 
-				// nombre colis
-				int nombreColis = 1;
-				nombreColis = panier.getQuantite() / produitTEmp.getQuantiteComplet();
-				if ((panier.getQuantite() % produitTEmp.getQuantiteComplet()) != 0)
-					nombreColis = nombreColis + 1;
-
-				/*
-				 * if( panier.getQuantite() < produitTEmp.getQuantiteComplet() )
-				 * {
-				 * nombreColis = panier.getQuantite() / produitTEmp.getQuantitePartiel();
-				 * }
-				 * else
-				 * {
-				 * nombreColis = panier.getQuantite() / produitTEmp.getQuantiteComplet();
-				 * int reste = ( panier.getQuantite() -
-				 * nombreColis*produitTEmp.getQuantiteComplet() ) /
-				 * produitTEmp.getQuantitePartiel() ;
-				 * nombreColis = nombreColis + reste ;
-				 * }
-				 */
+				// Calculate number of packages (colis)
+				int nombreColis = (panier.getQuantite() + produitTEmp.getQuantiteComplet() - 1)
+						/ produitTEmp.getQuantiteComplet();
 
 				String choix = nombreColis + " colis ";
 				ligne.setChoix(choix);

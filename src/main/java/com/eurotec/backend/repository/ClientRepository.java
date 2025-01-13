@@ -18,7 +18,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
 
-	@Query(value = "SELECT c FROM Client c where c.boutique.id = :id and ( c.nom like %:search% or c.prenom like %:search% or c.email like %:search% ) order by c.id desc")
+	@Query(value = "SELECT c FROM Client c JOIN FETCH c.utilisateur u where c.boutique.id = :id and ( c.nom like %:search% or c.prenom like %:search% or c.email like %:search% ) order by c.id desc")
 	List<Client> rechercher(@Param("search") String search, @Param("id") Long id);
 
 	Optional<Client> findByUtilisateurId(Long id);
