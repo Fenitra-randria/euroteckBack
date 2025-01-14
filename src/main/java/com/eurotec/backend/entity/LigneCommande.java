@@ -8,23 +8,23 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public class LigneCommande {
-	
+
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	Long id;
 
 	@ManyToOne
 	Produit produit;
-	
+
 	Integer quantite;
-	
+
 	@ManyToOne
 	Commande commande;
-	
+
 	Double prix;
-	
+
 	String choix;
-	
+
 	public String getChoix() {
 		return choix;
 	}
@@ -34,7 +34,7 @@ public class LigneCommande {
 	}
 
 	public Double getPrix() {
-		return prix;
+		return prix != null ? prix : 0.0;
 	}
 
 	public void setPrix(Double prix) {
@@ -72,7 +72,5 @@ public class LigneCommande {
 	public void setQuantite(Integer quantite) {
 		this.quantite = quantite;
 	}
-		
-	
 
 }

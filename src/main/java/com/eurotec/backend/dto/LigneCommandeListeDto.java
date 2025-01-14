@@ -1,9 +1,8 @@
 package com.eurotec.backend.dto;
 
-public class LigneCommandeListeDto 
-{
+public class LigneCommandeListeDto {
 	String photo;
-	
+
 	String reference;
 	String nom;
 	String codeBarre;
@@ -11,9 +10,9 @@ public class LigneCommandeListeDto
 	Integer quantite;
 	Double prix;
 	Double total;
-	
+
 	String categorie;
-	
+
 	public Double getTotal() {
 		return total;
 	}
@@ -79,11 +78,11 @@ public class LigneCommandeListeDto
 	}
 
 	public Double getPrix() {
-		return prix;
+		return prix != null ? prix : 0.0;
 	}
 
 	public void setPrix(Double prix) {
 		this.prix = prix;
 	}
-	
+
 }

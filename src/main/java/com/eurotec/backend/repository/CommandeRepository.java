@@ -49,7 +49,7 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
 	List<Commande> rechercher(@Param("search") String search, @Param("statut") String statut, @Param("id") Long id);
 
 	@Query(value = """
-				SELECT  c
+			SELECT  c
 				 FROM Commande c
 				  join c.client cl
 				  join cl.utilisateur u
@@ -58,7 +58,7 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
 				  and
 				  c.statut like %:statut%
 				 order by c.id desc
-			""")
+					""")
 	List<Commande> rechercherParclient(@Param("statut") String statut, @Param("idClient") Long idClient);
 
 }
