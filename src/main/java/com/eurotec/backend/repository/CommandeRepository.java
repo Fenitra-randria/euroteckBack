@@ -18,53 +18,47 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @SecurityRequirement(name = "bearerAuth")
 @Repository
-public interface CommandeRepository extends JpaRepository<Commande, Long>
-{
+public interface CommandeRepository extends JpaRepository<Commande, Long> {
 
 	List<Commande> findByBoutiqueId(Long id);
-	
+
 	/*
-	@Query(value = """ 
-			SELECT new com.eurotec.backend.dto.CommandeDto( c.id , cl.nom , cl.prenom , c.dateSaisie ) 
-			 FROM Commande c join c.client cl 
-			 where 
-			 ( cl.nom like %:search% or cl.prenom like %:search% ) 
-			  and 
-			 c.boutique.id = :id order by c.id desc 
-			 """)
-	List<CommandeListeDto> rechercher( @Param( "search")  String search,  @Param("id") Long id);
-	*/
-	
-	@Query(value = """ 
-					SELECT  c 
-					 FROM Commande c join c.client cl 
-					 where 
-					 ( cl.nom like %:search% or cl.prenom like %:search% ) 
-					  and 
-					   c.statut like %:statut%
-					  and 
-					 c.boutique.id = :id order by c.id desc 
-			 """)
-	List<Commande> rechercher( @Param( "search")  String search,  @Param( "statut") String statut , @Param("id") Long id);
-	
-	
-	@Query(value = """ 
-			SELECT  c 
-			 FROM Commande c 
-			  join c.client cl 
-			  join cl.utilisateur u 
-			 where 
-			  u.id = :idClient  
-			  and 
-			  c.statut like %:statut%
-			  and 
-			 c.boutique.id = 17
-			 order by c.id desc 
-	 """)
-	List<Commande> rechercherParclient( @Param( "statut") String statut , @Param("idClient") Long idClient);
-	
-	
+	 * @Query(value = """
+	 * SELECT new com.eurotec.backend.dto.CommandeDto( c.id , cl.nom , cl.prenom ,
+	 * c.dateSaisie )
+	 * FROM Commande c join c.client cl
+	 * where
+	 * ( cl.nom like %:search% or cl.prenom like %:search% )
+	 * and
+	 * c.boutique.id = :id order by c.id desc
+	 * """)
+	 * List<CommandeListeDto> rechercher( @Param( "search") String
+	 * search, @Param("id") Long id);
+	 */
+
+	@Query(value = """
+				SELECT  c
+				 FROM Commande c join c.client cl
+				 where
+				 ( cl.nom like %:search% or cl.prenom like %:search% )
+				  and
+				   c.statut like %:statut%
+				  and
+				 c.boutique.id = :id order by c.id desc
+			""")
+	List<Commande> rechercher(@Param("search") String search, @Param("statut") String statut, @Param("id") Long id);
+
+	@Query(value = """
+				SELECT  c
+				 FROM Commande c
+				  join c.client cl
+				  join cl.utilisateur u
+				 where
+				  u.id = :idClient
+				  and
+				  c.statut like %:statut%
+				 order by c.id desc
+			""")
+	List<Commande> rechercherParclient(@Param("statut") String statut, @Param("idClient") Long idClient);
+
 }
-
-
-
