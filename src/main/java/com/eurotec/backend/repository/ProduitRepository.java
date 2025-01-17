@@ -55,22 +55,25 @@ public interface ProduitRepository extends JpaRepository<Produit, Long> {
 				SELECT p
 				 FROM Produit p join p.boutique b
 				 where ( p.nouveaute = true  )
+				 and ( p.nom like %:search% or p.codeBarre like %:search%  )
 			""")
-	List<Produit> rechercherNouveaute(Pageable page);
+	List<Produit> rechercherNouveaute(Pageable page, @Param("search") String search);
 
 	@Query(value = """
 				SELECT p
 				 FROM Produit p join p.boutique b
 				 where ( p.promotion = true  )
+				 and ( p.nom like %:search% or p.codeBarre like %:search%  )
 			""")
-	List<Produit> rechercherPromotion(Pageable page);
+	List<Produit> rechercherPromotion(Pageable page, @Param("search") String search);
 
 	@Query(value = """
 				SELECT p
 				 FROM Produit p join p.boutique b
 				 where ( p.retourEnStock = true  )
+				 and ( p.nom like %:search% or p.codeBarre like %:search%  )
 			""")
-	List<Produit> rechercherRetourEnStock(Pageable page);
+	List<Produit> rechercherRetourEnStock(Pageable page, @Param("search") String search);
 
 	@Query(value = """
 				SELECT DISTINCT p.famille
