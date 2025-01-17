@@ -1,53 +1,98 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-	  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-	  layout:decorate="layout">
-<head>
-    <meta charset="utf-8">
+<html
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="layout"
+>
+  <head>
+    <meta charset="utf-8" />
     <title>Creation ou mettre un utilisateur</title>
-</head> 
+  </head>
 
-    <div layout:fragment="content">
-        <h1>Formulaire utilisateur</h1>
-        <form th:action="@{/user/save}" th:object="${user}" method="post">
-            <input type="hidden" th:if="${user.id != null}" th:field="*{id}" />
-            <div class="form-group">
-                <label for="nom">Nom</label>
-                <input type="text" class="form-control" id="nom" th:field="*{nom}" placeholder="Nom">
-            </div>
-            <div class="form-group">
-                <label for="prenom">Prenom</label>
-                <input type="text" class="form-control" id="prenom" th:field="*{prenom}" placeholder="Prenom">
-            </div>
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" class="form-control" id="email" th:field="*{email}" placeholder="Email">
-            </div>
-            <div class="form-group">
-                <label for="siret">SIRET</label>
-                <input type="text" class="form-control" id="siret" th:field="*{siret}" placeholder="SIRET">
-            </div>
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" class="form-control" id="password" th:field="*{password}" placeholder="Mot de passe" value="">
-            </div>
-            <div class="form-group">
-                <label for="numero">Numéro de téléphone</label>
-                <input type="text" class="form-control" id="numero" th:field="*{numero}" placeholder="Numéro de téléphone">
-            </div>
-            <div class="form-group">
-                <label for="roles">Roles</label>
-                <select class="form-control" id="roles" th:field="*{roles}">
-                    <option value="CLIENT">CLIENT</option>
-                    <option value="BOUTIQUE">BOUTIQUE</option>
-                </select>   
-            </div>
-            <div class="form-group">
-                <label for="actif">Active</label>
-                <input type="checkbox" class="form-check-input" id="actif" th:field="*{actif}">
-            </div>
-            <button type="submit" class="btn btn-primary mt-3">Enregistrer</button>
-        </form>
-    </div>
-<!-- fin content -->
-
+  <div layout:fragment="content">
+    <h1>Formulaire utilisateur</h1>
+    <form th:action="@{/user/save}" th:object="${user}" method="post">
+      <input type="hidden" th:if="${user.id != null}" th:field="*{id}" />
+      <div class="form-group">
+        <label for="nom">Nom</label>
+        <input
+          type="text"
+          class="form-control"
+          id="nom"
+          th:field="*{nom}"
+          placeholder="Nom"
+        />
+      </div>
+      <div class="form-group">
+        <label for="prenom">Prenom</label>
+        <input
+          type="text"
+          class="form-control"
+          id="prenom"
+          th:field="*{prenom}"
+          placeholder="Prenom"
+        />
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          class="form-control"
+          id="email"
+          th:field="*{email}"
+          placeholder="Email"
+        />
+      </div>
+      <div class="form-group">
+        <label for="siret">SIRET</label>
+        <input
+          type="text"
+          class="form-control"
+          id="siret"
+          th:field="*{siret}"
+          placeholder="SIRET"
+        />
+      </div>
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          th:field="*{password}"
+          placeholder="Mot de passe"
+          value=""
+        />
+      </div>
+      <div class="form-group">
+        <label for="numero">Numéro de téléphone</label>
+        <input
+          type="text"
+          class="form-control"
+          id="numero"
+          th:field="*{numero}"
+          placeholder="Numéro de téléphone"
+        />
+      </div>
+      <div class="form-group">
+        <label for="roles">Roles</label>
+        <select class="form-control" id="roles" th:field="*{roles}">
+          <option value="CLIENT">CLIENT</option>
+          <option value="BOUTIQUE">BOUTIQUE</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="actif">Active</label>
+        <input
+          type="checkbox"
+          class="form-check-input"
+          id="actif"
+          th:field="*{actif}"
+          checked
+        />
+      </div>
+      <button type="submit" class="btn btn-primary mt-3">Enregistrer</button>
+    </form>
+  </div>
+  <!-- fin content -->
+</html>

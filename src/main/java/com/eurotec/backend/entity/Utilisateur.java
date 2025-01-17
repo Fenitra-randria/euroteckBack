@@ -11,11 +11,11 @@ import jakarta.validation.constraints.NotBlank;
 
 @Entity
 public class Utilisateur {
-	
+
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	Long id;
-	
+
 	@NotBlank
 	String numero;
 
@@ -23,24 +23,24 @@ public class Utilisateur {
 	@Email
 	@Column(nullable = false)
 	String email;
-	
+
 	@NotBlank
 	String nom;
-	
+
 	String prenom;
-	
+
 	@NotBlank
 	@Column(nullable = false)
 	String password;
-	
-	@Column(nullable = false)
-	String roles;
-	
-	String siret;
 
 	@Column(nullable = false)
-	Boolean actif = false;
-	
+	String roles;
+
+	String siret;
+
+	@Column(nullable = true)
+	Boolean actif = true;
+
 	public Boolean getActif() {
 		return actif;
 	}
@@ -113,6 +113,4 @@ public class Utilisateur {
 		this.prenom = prenom;
 	}
 
-	
-	
 }
